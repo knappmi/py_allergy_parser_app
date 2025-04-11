@@ -1,0 +1,61 @@
+name: Build Versioned APK on PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 🔧 Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            python3-pip \
+            python3-setuptools \
+            libffi-dev \
+            libssl-dev \
+            libncurses5 \
+            libjpeg-dev \
+            zlib1g-dev \
+            libsqlite3-dev \
+            pkg-config \
+            libgl1-mesa-dev
+
+      - name: 📦 Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install cython buildozer
+
+      - name: ⚙️ Build APK
+        run: |
+          buildozer android debug
+
+      - name: 🏷️ Extract version and rename APK
+        run: |
+          VERSION=$(grep '^version\s*=' buildozer.spec | cut -d= -f2 | xargs)
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          mkdir dist
+          cp bin/*.apk dist/allergyapp-v${VERSION}-pr${PR_NUMBER}.apk
+
+      - name: 📤 Upload versioned APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: AllergyApp-APK
+          path: dist/*.apk

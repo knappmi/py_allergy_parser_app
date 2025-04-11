@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.env
+.venv
+env/
+venv/
+
+# Buildozer
+.buildozer/
+bin/
+*.apk
+
+# Keystore
+*.keystore
+keystore.b64
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# macOS
+.DS_Store

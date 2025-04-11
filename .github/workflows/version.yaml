@@ -1,0 +1,31 @@
+name: Auto Bump Version
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 📝 Bump patch version in buildozer.spec
+        run: |
+          VERSION=$(grep '^version\s*=' buildozer.spec | cut -d= -f2 | xargs)
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+          NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          echo "Bumping version: $VERSION → $NEW_VERSION"
+          sed -i "s/^version\s*=.*/version = $NEW_VERSION/" buildozer.spec
+
+      - name: ✅ Commit version bump
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git commit -am "🔖 Bump version to $(grep '^version' buildozer.spec | cut -d= -f2 | xargs)"
+          git push

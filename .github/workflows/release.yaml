@@ -1,0 +1,48 @@
+name: Build Signed Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: 🔧 Install system deps
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential git zip unzip openjdk-17-jdk python3-pip libffi-dev libssl-dev libncurses5
+
+      - name: 📦 Install Buildozer
+        run: |
+          python -m pip install --upgrade pip
+          pip install cython buildozer
+
+      - name: 🔑 Setup Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > my-release-key.keystore
+
+      - name: ✍️ Configure Signing in buildozer.spec
+        run: |
+          sed -i 's/^#\s*android\.release_key\.alias\s*=.*/android.release_key.alias = ${{ secrets.KEY_ALIAS }}/' buildozer.spec
+          sed -i 's/^#\s*android\.release_key\.password\s*=.*/android.release_key.password = ${{ secrets.KEY_PASSWORD }}/' buildozer.spec
+          sed -i 's/^#\s*android\.release_key\.storepass\s*=.*/android.release_key.storepass = ${{ secrets.KEYSTORE_PASSWORD }}/' buildozer.spec
+          sed -i 's|^#\s*android\.release_key\.keystore\s*=.*|android.release_key.keystore = my-release-key.keystore|' buildozer.spec
+
+      - name: 📦 Build release APK
+        run: |
+          buildozer android release
+
+      - name: 🚀 Upload to GitHub Releases
+        uses: softprops/action-gh-release@v1
+        with:
+          files: bin/*.apk
